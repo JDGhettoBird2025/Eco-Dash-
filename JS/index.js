@@ -1,0 +1,715 @@
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 1000;
+canvas.height = 650;
+
+//Player 
+const player = {
+    x: 500,
+    y: 325,
+    width: 40,
+    height: 40,
+    velocityX: 0,
+    velocityY: 0,
+    acceleration: 0.2,
+    maxSpeed: 5,
+    friction: 0.95,
+
+    angle: 0,
+
+    battery: 100
+};
+
+// Score system
+let score = 0;
+
+// Wind system
+let windX = 0;
+let windY = 0;
+let windStrength = 0;
+
+function updateWind(){
+
+    // Generate a random wind direction 
+    windX = (Math.random() - 0.5) * 0.08;
+    windY = (Math.random() - 0.5) * 0.08;
+
+    // Generate a random wind strength 
+    windStrength = Math.sqrt(
+        windX * windX + windY * windY
+    );
+}
+
+setInterval(updateWind, 5000);
+updateWind();
+
+
+// Keyboard controls
+const keys = {};
+
+document.addEventListener("keydown", function(event){
+    keys[event.key] = true;
+});
+
+document.addEventListener("keyup", function(event){
+    keys[event.key] = false;
+});
+
+// Update player position 
+function updatePlayer(){
+
+    // movement / acceleration code...
+    if(player.battery <= 0){
+        player.battery = 0;
+        player.velocityX = 0;
+        player.velocityY = 0;
+        return;
+    }
+
+    // Rotate the drone 
+    if(keys["ArrowLeft"] || keys["a"]){
+        player.angle -= 0.05;
+    }
+    if(keys["ArrowRight"] || keys["d"]){
+        player.angle += 0.05;
+    }
+
+    // Move forward 
+    if(keys["ArrowUp"] || keys["w"]){
+        player.velocityX += Math.cos(player.angle) * player.acceleration;
+        player.velocityY += Math.sin(player.angle) * player.acceleration;
+    }
+
+    // Move backward 
+    if(keys["ArrowDown"] || keys["s"]){
+        player.velocityX -= Math.cos(player.angle) * player.acceleration;
+        player.velocityY -= Math.sin(player.angle) * player.acceleration;
+    }
+
+    // Limit maximum speed
+    player.velocityX = Math.max(
+        -player.maxSpeed,
+        Math.min(player.velocityX, player.maxSpeed)
+    );
+
+    player.velocityY = Math.max(
+        -player.maxSpeed, 
+        Math.min(player.velocityY, player.maxSpeed)
+    );
+
+    // Apply wind force 
+    player.velocityX += windX;
+    player.velocityY += windY;
+
+    // Apply velocity 
+    player.x += player.velocityX;
+    player.y += player.velocityY;
+
+
+    // Apply friction 
+    player.velocityX *= player.friction;
+    player.velocityY *= player.friction;
+
+}
+
+// Update drone battery
+function updateBattery(){
+
+    // Check if the drone is moving
+    const isMoving = 
+        Math.abs(player.velocityX) > 0.01 ||
+        Math.abs(player.velocityY) > 0.01;
+
+    // Drain the battery while drone is moving
+    if(isMoving && player.battery > 0){
+        player.battery -= 0.02;
+    }
+
+    // Prevent battery from going below zero
+    if(player.battery < 0){
+        player.battery = 0;
+
+        // Stop the drone 
+        player.velocityX = 0;
+        player.velocityY = 0;
+    }
+}
+
+// Recharge battery
+function rechargeBattery(){
+    
+    const droneCenterX = player.x + player.width / 2;
+    const droneCenterY = player.y + player.height / 2;
+
+    const distanceX = droneCenterX - solarStation.x;
+    const distanceY = droneCenterY - solarStation.y;
+
+    const distance = Math.sqrt(
+        distanceX * distanceX + distanceY * distanceY
+    );
+
+    // Recharge when the drone is close to the solar station 
+    if(distance < solarStation.radius){
+        player.battery += 0.5; 
+
+        //Battery cannot exceed 100%
+        if(player.battery > 100) {
+            player.battery = 100;
+        }
+    }
+}
+
+// Check Delivery
+function checkDelivery(){
+
+    // Check if mission is active
+    if(!mission.active){
+        return;
+    }
+
+    // Find the centre of the drone
+    const droneCenterX = player.x + player.width / 2;
+    const droneCenterY = player.y + player.height / 2;
+
+    // Calculate distance from drone to delivery point
+    const distanceX = droneCenterX - deliveryPoint.x;
+    const distanceY = droneCenterY - deliveryPoint.y;
+
+    const distance = Math.sqrt(
+        distanceX * distanceX + distanceY * distanceY
+    );
+
+    // Check if drone has reached delivery point
+    if(distance < deliveryPoint.radius){
+        mission.active = false;
+
+        // Award the mission reward
+        score += mission.reward;
+
+        console.log("Delivery completed");
+        console.log("Score: " + score);
+    }
+}
+
+// Collision detection 
+function checkBoundaries(){
+    // Left boundary 
+    if(player.x < 0){
+        player.x = 0;
+        player.velocityX = 0;
+    }
+
+    // Right boundary 
+    if(player.x + player.width > canvas.width){
+        player.x = canvas.width - player.width;
+        player.velocityX = 0;
+    }
+
+    // Top boundary 
+    if(player.y < 0){
+        player.y = 0;
+        player.velocityY = 0;
+    }
+
+    // Bottom boundary 
+    if(player.y + player.height > canvas.height){
+        player.y = canvas.height - player.height;
+        player.velocityY = 0;
+    }
+}
+
+// Tree Collision
+function checkTreeCollision(){
+    trees.forEach(function(tree){
+        const droneCenterX = player.x + player.width / 2;
+        const droneCenterY = player.y + player.height / 2;
+
+        const distanceX = droneCenterX - tree.x;
+        const distanceY = droneCenterY - tree.y; 
+
+        const distance = Math.sqrt(
+            distanceX * distanceX + distanceY * distanceY
+        );
+
+        const minimumDistance = tree.radius + player.width / 2;
+
+        if(distance < minimumDistance){
+
+            // Push the drone away from the tree 
+            player.x -= player.velocityX;
+            player.y -= player.velocityY;
+
+            // Stop the drone 
+            player.velocityX = 0;
+            player.velocityY = 0;
+        }
+    });
+}
+
+// Check River Collision
+function checkRiverCollision(){
+
+    // Define the river collision area
+    const riverLeft = 640;
+    const riverRight = 870;
+
+    // Bridge opening 
+    const bridgeTop = 330;
+    const bridgeBottom = 390;
+
+    // Check if the drone overlaps the river
+    const inRiver = 
+        player.x + player.width > riverLeft &&
+        player.x < riverRight &&
+        player.y + player.height > 0 &&
+        player.y < canvas.height;
+
+    // Check if drone is on bridge 
+    const onBridge = 
+        player.y + player.height > bridgeTop &&
+        player.y < bridgeBottom;
+
+    // Stop the drone if it is in the river
+    if(inRiver && !onBridge){
+        // Move the drone back
+        player.x -= player.velocityX;
+        player.y -= player.velocityY;
+
+        // Stop the drone 
+        player.velocityX = 0;
+        player.velocityY = 0;
+    }
+
+}
+
+// Draw player 
+function drawPlayer(){
+    // Save the current Canvas state
+    ctx.save();
+
+    // Move the Canvas origin to the centre of the drone 
+    ctx.translate(
+        player.x + player.width / 2,
+        player.y + player.height / 2
+    );
+
+    // Rotate the Canvas 
+    ctx.rotate(player.angle);
+
+    // Drone body
+    ctx.fillStyle = "#333333";
+    ctx.fillRect(-15, -8, 30, 16);
+
+    // Drone centre
+    ctx.fillStyle = "#555555";
+    ctx.fillRect(-8, -5, 16, 10);
+
+    // Left arm 
+    ctx.strokeStyle = "#222222";
+    ctx.lineWidth = 4;
+
+    ctx.beginPath();
+    ctx.moveTo(-8, -5);
+    ctx.lineTo(-25, -18);
+    ctx.stroke();
+
+    // Right arm
+    ctx.beginPath();
+    ctx.moveTo(8, -5);
+    ctx.lineTo(25, -18);
+    ctx.stroke();
+
+    // Left propeller
+    ctx.strokeStyle = "#111111";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(-32, -23);
+    ctx.lineTo(-18, -13);
+    ctx.moveTo(-18, -23);
+    ctx.lineTo(-32, -13);
+    ctx.stroke();
+
+    // Right propeller
+    ctx.beginPath();
+    ctx.moveTo(18, -23);
+    ctx.lineTo(32, -13);
+    ctx.moveTo(32, -23);
+    ctx.lineTo(18, -13);
+    ctx.stroke();
+
+    // Front indicator 
+    ctx.fillStyle = "#e63946";
+    ctx.beginPath();
+    ctx.arc(0, -10, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Restore Canvas state
+    ctx.restore();
+}
+
+// Draw the game
+function drawGame(){
+    //Background 
+    ctx.fillStyle = "#4a7c59";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawRiver();
+    drawBridge();
+    drawRoad();
+    drawTrees();
+    drawVillage();
+    drawSolarStation();
+    drawDeliveryPoint();
+    drawPlayer();
+    drawBattery();
+    drawMissionStatus();
+    drawScore();
+    drawWindIndicator();
+}
+
+// Draw the river
+function drawRiver(){
+    ctx.fillStyle = "#3b82a0";
+
+    ctx.beginPath();
+    ctx.moveTo(650, 0);
+    ctx.lineTo(850, 0);
+    ctx.lineTo(820, 150);
+    ctx.lineTo(870, 300);
+    ctx.lineTo(780, 450);
+    ctx.lineTo(820, 650);
+    ctx.lineTo(650, 650);
+    ctx.lineTo(690, 500);
+    ctx.lineTo(640, 350);
+    ctx.lineTo(680, 200);
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+function drawBridge(){
+    // Bridge across the river 
+    ctx.fillStyle = "#8b5a2b";
+    ctx.fillRect(640, 330, 230, 60);
+
+    // Bridge edges 
+    ctx.strokeStyle = "#5c3a1e";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(640, 330, 230, 60);
+
+    // Bridge planks
+    ctx.strokeStyle = "#70461f";
+    ctx.lineWidth = 2;
+    
+    for(let x = 660; x < 870; x += 30){
+        ctx.beginPath();
+        ctx.moveTo(x, 330);
+        ctx.lineTo(x, 390);
+        ctx.stroke();
+    }
+}
+
+// Draw the road 
+function drawRoad(){
+    ctx.fillStyle = "#8b7355";
+
+    ctx.fillRect(0, 250, 650, 100);
+
+    ctx.fillRect(300, 0, 100, 250);
+}
+
+// Draw the Trees
+const trees = [
+    {x: 100, y: 100, radius: 28},
+    {x: 180, y: 150, radius: 28},
+    {x: 100, y: 450, radius: 28},
+    {x: 200, y: 520, radius: 28},
+    {x: 500, y: 100, radius: 28},
+    {x: 550, y: 500, radius: 28},
+    
+];
+
+function drawTrees(){
+    trees.forEach(function(tree){
+        drawTree(tree.x, tree.y);
+    });
+}
+
+// Draw the tree trunks and leaves 
+function drawTree(x, y){
+
+    //Tree trunk
+    ctx.fillStyle = "#654321";
+    ctx.fillRect(x - 8, y, 16, 35);
+    
+    // Tree leaves
+    ctx.fillStyle = "#1f5c2e";
+    ctx.beginPath();
+    ctx.arc(x, y, 28, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Draw wind Indicator 
+
+function drawWindIndicator(){
+
+    // Wind indicator position
+    const x = 20;
+    const y = 130;
+
+    // Determine wind strength 
+    let strengthText = "Weak";
+
+    if(windStrength > 0.05){
+        strengthText = "Weak";
+    } else if(windStrength > 0.025){
+        strengthText = "Medium";
+    }
+
+    // Determine wind direction 
+    let direction = "→";
+
+    if(Math.abs(windX) > Math.abs(windY)){
+
+        if(windX > 0){
+            direction = "→";
+        } else {
+            direction = "←"
+        }
+    } else {
+        if(windY > 0){
+            direction = "↓";
+        } else {
+            direction = "↑";
+        }
+    }
+
+    // Draw background 
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.fillRect(x, y, 180, 45);
+
+    // Draw border 
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, 180, 45);
+
+    // Draw wind information 
+    ctx.fillStyle = "#333";
+    ctx.font = "16px Arial";
+
+    ctx.fillText(
+        "Wind: " + direction + " " + strengthText,
+        x + 10,
+        y + 28
+    );
+}
+
+// Draw the village 
+function drawVillage(){
+
+    // Building 
+    ctx.fillStyle = "#d9a441";
+    ctx.fillRect(820, 480, 100, 70);
+
+    // Roof
+    ctx.fillStyle = "#7c3f00";
+
+    ctx.beginPath();
+    ctx.moveTo(800, 480);
+    ctx.lineTo(870, 430);
+    ctx.lineTo(940, 480);
+    ctx.closePath();
+
+    ctx.fill();
+
+    // Door
+    ctx.fillStyle = "#4b2e1e";
+    ctx.fillRect(855, 510, 25, 40);
+
+    // Delivery marker 
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "18px Arial";
+    ctx.fillText("Delivery", 820, 575);
+}
+
+function drawDeliveryPoint(){
+    if(!mission.active){
+        return;
+    }
+
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.arc(
+        deliveryPoint.x,
+        deliveryPoint.y,
+        deliveryPoint.radius,
+        0,
+        Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+    ctx.fillText(
+        "Delivery",
+        deliveryPoint.x - 35,
+        deliveryPoint.y + 5
+    );
+}
+
+function drawMissionStatus(){
+
+    if(mission.active){
+
+        // Mission title 
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+
+        ctx.fillText(
+            "Mission: Delivery",
+            20,
+            85
+        );
+
+        // Mission objective 
+        ctx.font = "16px Arial";
+        
+        ctx.fillText(
+            "Deliver the package to the village",
+            20,
+            110
+        );
+    } else {
+
+        // Mission completed
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "28px Arial";
+
+        ctx.fillText(
+            "Delivery Complete",
+            350,
+            60
+        );
+
+        // Completion message
+        ctx.font = "16px Arial";
+        ctx.fillText(
+            "Mission accomplished",
+            410,
+            90
+        );
+    }
+}
+
+const solarStation = {
+    x: 100, 
+    y: 525,
+    radius: 60
+};
+
+const mission = {
+    active: true,
+    destination: "village",
+    reward: 100
+};
+
+const deliveryPoint = {
+    x: 870,
+    y: 500,
+    radius: 50
+};
+
+function drawSolarStation() {
+
+    ctx.fillStyle = "#333333";
+    ctx.fillRect(50, 550, 100, 15);
+
+    ctx.fillStyle = "#1e4f8a";
+
+    ctx.beginPath();
+    ctx.moveTo(60, 550);
+    ctx.lineTo(80, 500);
+    ctx.lineTo(140, 500);
+    ctx.lineTo(120, 550);
+    ctx.closePath();
+
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "14px Arial";
+    ctx.fillText("SOLAR", 70, 585);
+}
+
+function drawBattery(){
+    const barWidth = 200;
+    const barHeight = 20;
+
+    const x = 20;
+    const y = 20;
+
+    // Battery percentage
+    const batteryPercentage = player.battery / 100;
+
+    // Battery background 
+    ctx.fillStyle = "#333333";
+    ctx.fillRect(x, y, barWidth, barHeight);
+
+    // Battery level
+    ctx.fillStyle = "#4caf50";
+    ctx.fillRect(
+        x,
+        y,
+        barWidth *  batteryPercentage,
+        barHeight
+    );
+
+    // Battery outline 
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, barWidth, barHeight);
+
+    // Battery text
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+
+    ctx.fillText(
+        "Battery: " + Math.round(player.battery) + "%",
+        x,
+        y + 45
+    );
+}
+
+// Score
+function drawScore(){
+    
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+
+    ctx.fillText(
+        "Score: " + score,
+        800,
+        30
+    );
+}
+// Main game loop
+function gameLoop(){
+    updateBattery();
+    updatePlayer();
+    rechargeBattery();
+
+    checkBoundaries();
+    checkTreeCollision();
+    checkRiverCollision(); 
+    checkDelivery();
+
+    drawGame();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Start game
+gameLoop();
