@@ -48,6 +48,8 @@ updateWind();
 // Keyboard controls
 const keys = {};
 
+let gameStarted = false;
+
 document.addEventListener("keydown", function(event){
     keys[event.key] = true;
 });
@@ -59,7 +61,7 @@ document.addEventListener("keyup", function(event){
 // Update player position 
 function updatePlayer(){
 
-    // movement / acceleration code...
+    //movement/acceleration code...
     if(player.battery <= 0){
         player.battery = 0;
         player.velocityX = 0;
@@ -695,8 +697,51 @@ function drawScore(){
         30
     );
 }
+
+// Draw start screen 
+function drawStartScreen(){
+
+    ctx.fillStyle = "#4a7c59";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Title 
+    ctx.fillStyle = "white";
+    ctx.font = "bold 50px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("ECO DASH", canvas.width / 2, 180);
+
+    // Subtitle 
+    ctx.font = "24px Arial";
+    ctx.fillText("African Logistics", canvas.width / 2, 225);
+
+    // Instructions 
+    ctx.font = "18px Arial";
+    ctx.fillText(
+        "Use W/A/S/D or Arrow Keys to control the drone",
+        canvas.width / 2,
+        300
+    );
+
+    // Start button 
+    ctx.fillStyle = "#d9a441";
+    ctx.fillRect(375, 350, 250, 70);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 25px Arial";
+    ctx.fillText("START GAME", canvas.width / 2, 395);
+
+    ctx.textAlign = "left";
+}
+
 // Main game loop
 function gameLoop(){
+
+    if(!gameStarted){
+        drawStartScreen();
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     updateBattery();
     updatePlayer();
     rechargeBattery();
