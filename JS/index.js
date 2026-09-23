@@ -50,6 +50,7 @@ const keys = {};
 
 let gameStarted = false;
 let gamePaused = false;
+let gameOver = false;
 
 document.addEventListener("keydown", function(event){
     keys[event.key] = true;
@@ -162,6 +163,8 @@ function updateBattery(){
         // Stop the drone 
         player.velocityX = 0;
         player.velocityY = 0;
+
+        gameOver = true;
     }
 }
 
@@ -790,6 +793,45 @@ function drawPauseScreen(){
     ctx.textAlign = "left";
 }
 
+function drawGameOverScreen(){
+
+    // Dark transparent overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Game Over title 
+    ctx.fillStyle = "#e63946";
+    ctx.font = "56px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        "GAME OVER",
+        canvas.width / 2,
+        canvas.height / 2 - 50
+    );
+
+    ctx.fillStyle = "white";
+    ctx.font = "24px Arial";
+
+    ctx.fillText(
+        "The drone battery has run out.",
+        canvas.width / 2,
+        canvas.height / 2
+    );
+
+    // Restart instruction 
+    ctx.font = "20px Arial";
+    
+    ctx.fillText(
+        "Restart functionality coming next",
+        canvas.width / 2,
+        canvas.height / 2 + 45
+    );
+
+    // Reset text alignment 
+    ctx.textAlign = "left";
+}
+
 // Main game loop
 function gameLoop(){
 
@@ -799,7 +841,7 @@ function gameLoop(){
         return;
     }
 
-    if(!gamePaused){
+    if(!gamePaused && !gameOver){
 
         updateBattery();
         updatePlayer();
@@ -815,6 +857,10 @@ function gameLoop(){
 
     if(gamePaused){
         drawPauseScreen();
+    }
+
+    if(gameOver){
+        drawGameOverScreen();
     }
 
     requestAnimationFrame(gameLoop);
