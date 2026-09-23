@@ -49,19 +49,46 @@ updateWind();
 const keys = {};
 
 let gameStarted = false;
+let gamePaused = false;
 
 document.addEventListener("keydown", function(event){
     keys[event.key] = true;
+
+    // Pause / resume game
+    if(event.key.toLowerCase() === "p"){
+        if(gameStarted){
+            gamePaused = !gamePaused;
+        }
+    }
 });
 
 document.addEventListener("keyup", function(event){
     keys[event.key] = false;
 });
 
+// Start the game when the start button is clicked 
+canvas.addEventListener("click", function(event){
+
+    const rect = canvas.getBoundingClientRect();
+
+    const mouseX = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (event.clientY - rect.top) * (canvas.height / rect.height);
+
+    // Check if the start game button was clicked 
+    if(
+        mouseX >= 375 &&
+        mouseX <= 625 &&
+        mouseY >= 350 &&
+        mouseY <= 420
+    ){
+        gameStarted = true;
+    }
+});
+
 // Update player position 
 function updatePlayer(){
 
-    //movement/acceleration code...
+    // movement / acceleration code...
     if(player.battery <= 0){
         player.battery = 0;
         player.velocityX = 0;
@@ -733,6 +760,36 @@ function drawStartScreen(){
     ctx.textAlign = "left";
 }
 
+function drawPauseScreen(){
+
+    // Overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Pause title 
+    ctx.fillStyle = "white";
+    ctx.font = "48px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        "GAME PAUSED",
+        canvas.width / 2,
+        canvas.height / 2 - 30
+    );
+
+    // Instructions 
+    ctx.font = "22px Arial";
+
+    ctx.fillText(
+        "Press P to continue",
+        canvas.width / 2,
+        canvas.height / 2 + 20
+    );
+
+    // Reset text alignment 
+    ctx.textAlign = "left";
+}
+
 // Main game loop
 function gameLoop(){
 
@@ -742,16 +799,23 @@ function gameLoop(){
         return;
     }
 
-    updateBattery();
-    updatePlayer();
-    rechargeBattery();
+    if(!gamePaused){
 
-    checkBoundaries();
-    checkTreeCollision();
-    checkRiverCollision(); 
-    checkDelivery();
+        updateBattery();
+        updatePlayer();
+        rechargeBattery();
+    
+        checkBoundaries();
+        checkTreeCollision();
+        checkRiverCollision(); 
+        checkDelivery();
+    }
 
     drawGame();
+
+    if(gamePaused){
+        drawPauseScreen();
+    }
 
     requestAnimationFrame(gameLoop);
 }
