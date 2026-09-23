@@ -61,6 +61,13 @@ document.addEventListener("keydown", function(event){
             gamePaused = !gamePaused;
         }
     }
+
+    // Restart game 
+    if(event.key.toLowerCase() === "r"){
+        if(gameOver){
+            restartGame();
+        }
+    }
 });
 
 document.addEventListener("keyup", function(event){
@@ -313,6 +320,34 @@ function checkRiverCollision(){
         player.velocityY = 0;
     }
 
+}
+
+function restartGame(){
+    
+    // Reset player position 
+    player.x = 500;
+    player.y = 325;
+
+    // Reset player movement
+    player.velocityX = 0;
+    player.velocityY = 0;
+
+    // Reset drone rotation 
+    player.angle = 0;
+
+    // Reset battery 
+    player.battery = 100;
+
+    // Reset game states
+    gamePaused = false;
+    gameOver = false;
+    gameStarted = true;
+
+    // Reset score 
+    score = 0;
+
+    // Reset mission
+    mission.active = true;
 }
 
 // Draw player 
@@ -823,7 +858,7 @@ function drawGameOverScreen(){
     ctx.font = "20px Arial";
     
     ctx.fillText(
-        "Restart functionality coming next",
+        "Press R to restart",
         canvas.width / 2,
         canvas.height / 2 + 45
     );
