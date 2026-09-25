@@ -29,6 +29,28 @@ let windX = 0;
 let windY = 0;
 let windStrength = 0;
 
+let distanceTravelled = 0;
+let totalBatteryUsed = 0;
+
+let previousPlayerX = player.x;
+let previousPlayerY = player.y;
+
+function updateDistanceTravelled(){
+
+    const distanceX = player.x - previousPlayerX;
+    const distanceY = player.y - previousPlayerY;
+
+    const distanceMoved = Math.sqrt(
+        distanceX * distanceX + distanceY * distanceY
+    );
+
+    distanceTravelled += distanceMoved;
+
+    previousPlayerX = player.x;
+    previousPlayerY = player.y;
+}
+
+
 function updateWind(){
 
     // Generate a random wind direction 
@@ -167,6 +189,7 @@ function updateBattery(){
     // Drain the battery while drone is moving
     if(isMoving && player.battery > 0){
         player.battery -= 0.02;
+        totalBatteryUsed += 0.02;
     }
 
     // Prevent battery from going below zero
@@ -440,6 +463,38 @@ function drawGame(){
     drawMissionStatus();
     drawScore();
     drawWindIndicator();
+    drawDistance();
+    drawEnergyEfficiency();
+}
+
+function drawDistance(){
+
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+
+    ctx.fillText(
+        "Distance: " + Math.round(distanceTravelled),
+        20,
+        190
+    );
+}
+
+function drawEnergyEfficiency(){
+
+    let efficiency = 0;
+
+    if(totalBatteryUsed > 0){
+        efficiency = distanceTravelled / totalBatteryUsed;
+    }
+
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+
+    ctx.fillText(
+        "Efficiency: " + efficiency.toFixed(2) + " distance/% battery",
+        20,
+        215
+    );
 }
 
 // Draw the river
@@ -886,6 +941,7 @@ function gameLoop(){
 
         updateBattery();
         updatePlayer();
+        updateDistanceTravelled();
         rechargeBattery();
     
         checkBoundaries();
