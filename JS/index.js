@@ -52,6 +52,11 @@ let gameStarted = false;
 let gamePaused = false;
 let gameOver = false;
 
+const backgroundMusic = new Audio("Assets/sounds/DST-TowerDefenseTheme.mp3");
+
+backgroundMusic.loop = true;
+backgroundMusic.volume = 0.3;
+
 document.addEventListener("keydown", function(event){
     keys[event.key] = true;
 
@@ -90,6 +95,7 @@ canvas.addEventListener("click", function(event){
         mouseY <= 420
     ){
         gameStarted = true;
+        backgroundMusic.play();
     }
 });
 
