@@ -35,6 +35,9 @@ let totalBatteryUsed = 0;
 let previousPlayerX = player.x;
 let previousPlayerY = player.y;
 
+let highScore = Number(localStorage.getItem("ecoDashHighScore")) || 0;
+let longestDistance = Number(localStorage.getItem("ecoDashLongestDistance")) || 0;
+
 function updateDistanceTravelled(){
 
     const distanceX = player.x - previousPlayerX;
@@ -50,6 +53,21 @@ function updateDistanceTravelled(){
     previousPlayerY = player.y;
 }
 
+function saveGameStats(){
+
+    if(score > highScore){
+        highScore = score;
+        localStorage.setItem("ecoDashHighScore", highScore);
+    }
+
+    if(distanceTravelled > longestDistance){
+        longestDistance = distanceTravelled;
+        localStorage.setItem(
+            "ecoDashLongestDistance",
+            longestDistance
+        );
+    }
+}
 
 function updateWind(){
 
@@ -193,7 +211,7 @@ function updateBattery(){
     }
 
     // Prevent battery from going below zero
-    if(player.battery < 0){
+    if(player.battery <= 0){
         player.battery = 0;
 
         // Stop the drone 
@@ -201,6 +219,7 @@ function updateBattery(){
         player.velocityY = 0;
 
         gameOver = true;
+        saveGameStats();
     }
 }
 
@@ -895,7 +914,7 @@ function drawGameOverScreen(){
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Game Over title 
+    // Game Over title
     ctx.fillStyle = "#e63946";
     ctx.font = "56px Arial";
     ctx.textAlign = "center";
@@ -903,28 +922,45 @@ function drawGameOverScreen(){
     ctx.fillText(
         "GAME OVER",
         canvas.width / 2,
-        canvas.height / 2 - 50
+        canvas.height / 2 - 70
     );
 
+    // Battery message
     ctx.fillStyle = "white";
     ctx.font = "24px Arial";
 
     ctx.fillText(
         "The drone battery has run out.",
         canvas.width / 2,
-        canvas.height / 2
+        canvas.height / 2 - 20
     );
 
-    // Restart instruction 
+    // Saved high score
+    ctx.font = "22px Arial";
+
+    ctx.fillText(
+        "High Score: " + highScore,
+        canvas.width / 2,
+        canvas.height / 2 + 25
+    );
+
+    // Saved longest distance
+    ctx.fillText(
+        "Longest Distance: " + longestDistance.toFixed(1),
+        canvas.width / 2,
+        canvas.height / 2 + 60
+    );
+
+    // Restart instruction
     ctx.font = "20px Arial";
-    
+
     ctx.fillText(
         "Press R to restart",
         canvas.width / 2,
-        canvas.height / 2 + 45
+        canvas.height / 2 + 110
     );
 
-    // Reset text alignment 
+    // Reset text alignment
     ctx.textAlign = "left";
 }
 
